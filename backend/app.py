@@ -1,30 +1,43 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-import openai
+from openai import OpenAI
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)  # Use openai directly, not OpenAI class
 
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this to restrict origins in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.route("/", methods=["GET"])
-def hello_world():
+@app.get("/")
+async def hello_world():
     return "Hello World from the Python backend!"
 
 
-@app.route("/getAIMessage", methods=["POST"])
-def get_ai_message():
+@app.post("/getAIMessage")
+async def get_ai_message(request: Request):
     try:
-        data = request.get_json()
+        data = await request.json()
         user_query = data.get("query", "")
 
-        completion = openai.ChatCompletion.create(
-            model="gpt-4",
+        # Use OpenAI's ChatCompletion API
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
@@ -34,11 +47,10 @@ def get_ai_message():
             ],
         )
 
-        assistant_response = completion.choices[0].message["content"]
+        assistant_response = completion.choices[0].message.content
         response = {"message": {"role": "assistant", "content": assistant_response}}
-        return jsonify(response)
+        return JSONResponse(content=response)
     except Exception as e:
-        # For now, just respond with a simple message
         print(f"Error handling /getAIMessage: {e}")
         response = {
             "message": {
@@ -46,9 +58,4 @@ def get_ai_message():
                 "content": "An error occurred on the server.",
             }
         }
-        return jsonify(response), 500
-
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    app.run(port=port, debug=True)
+        return JSONResponse(content=response, status_code=500)
