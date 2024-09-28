@@ -11,8 +11,10 @@ from langchain_community.docstore.document import Document
 from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema import BaseRetriever
+from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import LLMChain
 import json
-from typing import Any, List, Optional
+from typing import Any, List
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -192,12 +194,191 @@ def load_vectorstore(index_path, embeddings):
     return vectorstore
 
 
+def get_question_rephrase_chain(llm: ChatOpenAI) -> LLMChain:
+    """
+    Creates an LLMChain to rephrase follow-up questions into standalone questions.
+    """
+    condense_question_prompt = PromptTemplate.from_template("""
+    Given the following conversation and a follow-up question, rephrase the question to be a standalone question.
+
+    Conversation:
+    {chat_history}
+
+    Follow-up question:
+    {question}
+
+    Standalone question:
+    """)
+    condense_question_chain = LLMChain(llm=llm, prompt=condense_question_prompt)
+    return condense_question_chain
+
+
+def get_answer_generation_chain(llm: ChatOpenAI) -> LLMChain:
+    """
+    Creates an LLMChain to generate answers based on retrieved context and chat history.
+    """
+    qa_prompt = PromptTemplate.from_template("""
+    You are a helpful assistant specializing in refrigerator and dishwasher parts.
+    Pay close attention to part numbers, model numbers, and other identifiers.
+    Use the following conversation history and context to answer the user's question.
+    If the information is not sufficient, politely inform the user.
+    Do not make up any information that you do not have.
+    If you are asked anything that does not directly relate to refrigerator parts or dishwasher parts or refrigerators or dishwashers, or does not directly reference something that is in the context provided below, politely inform the user that you are only able to provide information about refrigerator and dishwasher parts.
+
+    Conversation History:
+    {chat_history}
+
+    Context:
+    {context}
+
+    Question:
+    {question}
+
+    Answer:
+    """)
+    answer_chain = LLMChain(llm=llm, prompt=qa_prompt)
+    return answer_chain
+
+
+# ----------------------------------
+# Processing Function
+# ----------------------------------
+
+
+def process_query(
+    user_query: str,
+    chat_history: List[dict],
+    retriever: CustomRetriever,
+    rephrase_chain: LLMChain,
+    answer_chain: LLMChain,
+) -> str:
+    """
+    Processes the user's query by rephrasing it, retrieving relevant documents,
+    and generating an answer.
+    """
+    # Format chat history into a string
+    formatted_chat_history = ""
+    for message in chat_history:
+        role = message.get("role", "")
+        content = message.get("content", "")
+        formatted_chat_history += f"{role.capitalize()}: {content}\n"
+
+    # Step 1: Rephrase the question into a standalone question
+    standalone_question = rephrase_chain.run(
+        chat_history=formatted_chat_history, question=user_query
+    )
+
+    logging.info(f"Standalone question: {standalone_question}")
+
+    # Step 2: Retrieve relevant documents using the standalone question
+    retrieved_docs = retriever.get_relevant_documents(standalone_question)
+
+    # Step 3: Combine retrieved documents into context
+    context = "\n".join([doc.page_content for doc in retrieved_docs])
+
+    logging.info(f"Retrieved context: {context}")
+
+    # Step 4: Generate the final answer using chat history, context, and original question
+    answer = answer_chain.run(
+        chat_history=formatted_chat_history, context=context, question=user_query
+    )
+
+    logging.info(f"Assistant response: {answer}")
+
+    return answer
+
+
+# def get_qa_chain():
+#     documents = load_documents()
+#     vectorstore = create_vectorstore(documents)
+#     # retriever = vectorstore.as_retriever(
+#     #     search_type="similarity", search_kwargs={"k": 3}
+#     # )
+#     retriever = CustomRetriever(vectorstore=vectorstore)
+#
+#     # Initialize the language model
+#     llm = ChatOpenAI(
+#         openai_api_key=openai_api_key, model_name="gpt-3.5-turbo", temperature=0
+#     )
+#
+#     rephrase_chain = get_question_rephrase_chain(llm)
+#     answer_chain = get_question_rephrase_chain(llm)
+#
+#     # Define a custom prompt template
+#     # prompt_template = PromptTemplate(
+#     #     input_variables=["chat_history", "context", "question"],
+#     #     template="""
+#     #         You are a helpful assistant specializing in refrigerator and dishwasher parts.
+#     #         Pay closse attention to part numbers, model numbers, and other identifiers. You will be given the part number corresponding with each part and should be able to provide the corresponding name if given a part number, along with related details.
+#     #         Use the following information to answer the user's question.
+#     #         Use the following conversation history and context to answer the user's question.
+#     #         If the information is not sufficient, politely inform the user.
+#     #         Do not make up any information that you do not have.
+#     #
+#     #         Conversation History:
+#     #         {chat_history}
+#     #
+#     #         Context:
+#     #         {context}
+#     #
+#     #         Question:
+#     #         {question}
+#     #
+#     #         Answer:
+#     #         """,
+#     # )
+#     qa_chain = ConversationalRetrievalChain.from_llm(
+#         llm=llm,
+#         retriever=retriever,
+#         condense_question_prompt=PromptTemplate(
+#             input_variables=["chat_history", "question"],
+#             template="""
+#                 Given the following conversation and a follow-up question, rephrase the question to be a standalone question.
+#
+#                 Conversation:
+#                 {chat_history}
+#
+#                 Follow-up question:
+#                 {question}
+#
+#                 Standalone question:
+#                 """,
+#         ),
+#         combine_docs_chain_kwargs={"prompt": prompt_template},
+#         return_source_documents=False,
+#     )
+#     return qa_chain
+#
+# Set up the RetrievalQA chain with the custom prompt
+# qa_chain = RetrievalQA.from_chain_type(
+#     llm=llm,
+#     chain_type="stuff",
+#     retriever=retriever,
+#     chain_type_kwargs={"prompt": prompt_template},
+#     return_source_documents=False,
+# )
+# qa_chain = ConversationalRetrievalChain(
+#     llm=llm,
+#     retriever=retriever,
+#     combine_docs_chain_kwargs={"prompt": prompt_template},
+#     return_source_documents=False,
+# )
+# return qa_chain
+
+
 def get_qa_chain():
+    """
+    Initializes and returns the components needed to process queries.
+    """
+    # Load and prepare documents
     documents = load_documents()
+    logging.info(f"Loaded {len(documents)} documents.")
+
+    # Create the vector store
     vectorstore = create_vectorstore(documents)
-    # retriever = vectorstore.as_retriever(
-    #     search_type="similarity", search_kwargs={"k": 3}
-    # )
+    logging.info("Vector store created.")
+
+    # Initialize the custom retriever
     retriever = CustomRetriever(vectorstore=vectorstore)
 
     # Initialize the language model
@@ -205,31 +386,14 @@ def get_qa_chain():
         openai_api_key=openai_api_key, model_name="gpt-3.5-turbo", temperature=0
     )
 
-    # Define a custom prompt template
-    prompt_template = PromptTemplate(
-        input_variables=["context", "question"],
-        template="""
-You are a helpful assistant specializing in refrigerator and dishwasher parts.
-Pay closse attention to part numbers, model numbers, and other identifiers. You will be given the part number corresponding with each part and should be able to provide the corresponding name if given a part number, along with related details.
-Use the following information to answer the user's question.
-If the information is not sufficient, politely inform the user.
+    # Initialize the LLMChains
+    rephrase_chain = get_question_rephrase_chain(llm)
+    answer_chain = get_answer_generation_chain(llm)
 
-Context:
-{context}
+    logging.info("LLM chains initialized.")
 
-Question:
-{question}
-
-Answer:
-""",
-    )
-
-    # Set up the RetrievalQA chain with the custom prompt
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=retriever,
-        chain_type_kwargs={"prompt": prompt_template},
-        return_source_documents=False,
-    )
-    return qa_chain
+    return {
+        "rephrase_chain": rephrase_chain,
+        "answer_chain": answer_chain,
+        "retriever": retriever,
+    }

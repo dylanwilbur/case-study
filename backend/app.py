@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from openai import OpenAI
-from langchain_setup import get_qa_chain
+from langchain_setup import get_qa_chain, process_query
 from pydantic import BaseModel
 import os
 
@@ -29,26 +29,56 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     query: str
+    chat_history: list = []
 
 
 # Initialize the QA chain once when the app starts
-qa_chain = get_qa_chain()
+# qa_chain = get_qa_chain()
+
+qa_components = get_qa_chain()
+rephrase_chain = qa_components["rephrase_chain"]
+answer_chain = qa_components["answer_chain"]
+retriever = qa_components["retriever"]
 
 
 @app.get("/")
 async def hello_world():
-    return "Hello World from the Python backend!"
+    return "Hello world"
 
 
 @app.post("/getAIMessage")
 async def get_ai_message(request: QueryRequest):
     try:
         user_query = request.query
-        print(f"Received query: {user_query}")
+        chat_history = request.chat_history
 
-        assistant_response = qa_chain.run(user_query)
-        # assistant_response = qa_chain({"query": user_query})
-        response = {"message": {"role": "assistant", "content": assistant_response}}
+        # if not chat_history:
+        #     chat_history = []
+
+        # print(f"Received query: {user_query}")
+        #
+        # # assistant_response = qa_chain.run(user_query, chat_history)
+        # assistant_response = qa_chain.invoke(
+        #     {"question": user_query, "chat_history": chat_history}
+        # )
+        # assistant_response = assistant_response["answer"]
+        assistant_response = process_query(
+            user_query=user_query,
+            chat_history=chat_history,
+            retriever=retriever,
+            rephrase_chain=rephrase_chain,
+            answer_chain=answer_chain,
+        )
+
+        # chat_history.append({"role": "user", "content": user_query})
+        # chat_history.append({"role": "assistant", "content": assistant_response})
+
+        response = {
+            "assistant_response": assistant_response,
+            "chat_history": chat_history,  # Return the updated chat history
+        }
+        # response = {"message": {"role": "assistant", "content": assistant_response}}
+
         return response
 
     except Exception as e:
