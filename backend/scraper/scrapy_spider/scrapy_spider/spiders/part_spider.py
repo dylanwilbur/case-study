@@ -5,7 +5,10 @@ from scrapy_spider.items import PartItem
 class PartSpider(scrapy.Spider):
     name = "part_spider"
     allowed_domains = ["partselect.com"]  # Replace with the target domain
-    start_urls = ["https://www.partselect.com/Kenmore-Refrigerator-Parts.htm"]
+    start_urls = [
+        "https://www.partselect.com/Refrigerator-Parts.htm",
+        "https://www.partselect.com/Diskwasher-Parts.htm",
+    ]
 
     # def parse(self, response):
     #     # Extract links to individual parts
@@ -14,14 +17,30 @@ class PartSpider(scrapy.Spider):
     #     #     yield response.follow(link, self.parse_part)
     #     parse_part(response)
     def parse(self, response):
+        # Determine appliance type based on the start URL
+        if "Refrigerator-Parts" in response.url:
+            appliance_type = "refrigerator"
+        elif "Dishwasher-Parts" in response.url:
+            appliance_type = "dishwasher"
+        else:
+            appliance_type = "unknown"
+
+        brands_list = response.css("ul.nf__links")
+        brand_links = brands_list.css("li a::attr(href)").getall()
+
+        for link in brand_links:
+            yield response.follow(
+                link, self.parse_brand, meta={"appliance": appliance_type}
+            )
+
+    def parse_brand(self, response):
         # Extract links to individual parts
         part_links = response.css("a.nf__part__detail__title::attr(href)").getall()
         for link in part_links:
             # Follow each link to parse individual part details
-            yield response.follow(link, self.parse_part)
-
-    def parse_brand(self, response):
-        part_links = response.css()
+            yield response.follow(
+                link, self.parse_part, meta={"appliance": response.meta["appliance"]}
+            )
 
     def parse_part(self, response):
         item = PartItem()
@@ -74,11 +93,6 @@ class PartSpider(scrapy.Spider):
         item["review_count"] = response.css(".rating__count::text").re_first(r"\d+")
 
         # Determine appliance type based on starting URL
-        if "dishwasher" in response.url:
-            item["appliance"] = "dishwasher"
-        elif "refrigerator" in response.url:
-            item["appliance"] = "refrigerator"
-        else:
-            item["appliance"] = "unknown"
+        item["appliance"] = response.meta["appliance"]
 
         yield item

@@ -47,6 +47,7 @@ async def get_ai_message(request: QueryRequest):
         print(f"Received query: {user_query}")
 
         assistant_response = qa_chain.run(user_query)
+        # assistant_response = qa_chain({"query": user_query})
         response = {"message": {"role": "assistant", "content": assistant_response}}
         return response
 
