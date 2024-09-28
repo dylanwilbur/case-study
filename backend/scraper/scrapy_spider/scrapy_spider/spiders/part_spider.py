@@ -7,15 +7,9 @@ class PartSpider(scrapy.Spider):
     allowed_domains = ["partselect.com"]  # Replace with the target domain
     start_urls = [
         "https://www.partselect.com/Refrigerator-Parts.htm",
-        "https://www.partselect.com/Diskwasher-Parts.htm",
+        "https://www.partselect.com/Dishwasher-Parts.htm",
     ]
 
-    # def parse(self, response):
-    #     # Extract links to individual parts
-    #     # part_links = response.css("a.part-link::attr(href)").getall()
-    #     # for link in part_links:
-    #     #     yield response.follow(link, self.parse_part)
-    #     parse_part(response)
     def parse(self, response):
         # Determine appliance type based on the start URL
         if "Refrigerator-Parts" in response.url:
@@ -94,5 +88,14 @@ class PartSpider(scrapy.Spider):
 
         # Determine appliance type based on starting URL
         item["appliance"] = response.meta["appliance"]
+
+        compatible_models = response.css(
+            "div.pd__crossref__list.js-dataContainer.js-infiniteScroll div.row a::text"
+        ).getall()
+        # Clean and normalize the model numbers
+        compatible_models = [
+            model.strip().upper() for model in compatible_models if model.strip()
+        ]
+        item["compatible_models"] = compatible_models
 
         yield item

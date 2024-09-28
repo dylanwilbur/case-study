@@ -90,6 +90,43 @@ ITEM_PIPELINES = {
     "scrapy_spider.pipelines.JsonWriterPipeline": 300,
 }
 
+DOWNLOADER_MIDDLEWARES = {
+    "scrapy_playwright.middleware.PlaywrightMiddleware": 800,
+}
+
+PLAYWRIGHT_BROWSER_TYPE = "chromium"  # or 'firefox' or 'webkit'
+PLAYWRIGHT_LAUNCH_OPTIONS = {
+    "headless": True,
+    # Add other Playwright launch options if needed
+}
+
+DEFAULT_REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/114.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+DOWNLOAD_HANDLERS = {
+    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+}
+
+# Enable HTTP caching (optional but recommended)
+HTTPCACHE_ENABLED = True
+HTTPCACHE_EXPIRATION_SECS = 86400  # 1 day
+HTTPCACHE_DIR = "httpcache"
+HTTPCACHE_IGNORE_HTTP_CODES = [403, 404]
+HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+
+# Configure AutoThrottle to respect the website's rate limits
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 2  # Initial download delay
+AUTOTHROTTLE_MAX_DELAY = 10  # Maximum download delay
+AUTOTHROTTLE_TARGET_CONCURRENCY = (
+    1.0  # Average number of requests Scrapy should be sending
+)
+AUTOTHROTTLE_DEBUG = False
 
 # Set settings whose default value is deprecated to a future-proof value
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
