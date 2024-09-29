@@ -1,0 +1,12 @@
+Cache-Control: no-cache, no-store
+Connection: keep-alive
+Content-Type: text/html; charset=utf-8
+Date: Sat, 28 Sep 2024 23:28:02 GMT
+Pragma: no-cache
+Request-Context: appId=cid-v1:c3213bf1-146e-4739-a78f-859f1c429883
+Server: nginx/1.21.3
+Set-Cookie: .AspNetCore.Antiforgery.Xh2vXOVYRfQ=CfDJ8MxFXhWWlKdLsXYEntchT1vg9iXHMMJ3ItMxjJUQfDDluGrnKpvLcUezuqt-uhk3YX7PbCwruGppvoXg8XY2xjj9FsACKZIqiug6RzyND3h0bkdRcQ98jc1FD_OxqFq7yglL-qv6NboE4Qx9mPpNfRg; path=/; samesite=strict; httponly
+Transfer-Encoding: chunked
+Vary: Accept-Encoding
+X-Frame-Options: SAMEORIGIN
+X-Powered-By: ASP.NET

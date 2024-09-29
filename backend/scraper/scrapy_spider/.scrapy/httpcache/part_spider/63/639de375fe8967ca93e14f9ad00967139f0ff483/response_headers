@@ -1,0 +1,13 @@
+Content-Length: 24606
+Server: nginx/1.21.3
+Content-Type: text/html; charset=utf-8
+Cache-Control: no-cache, no-store
+Pragma: no-cache
+Request-Context: appId=cid-v1:c3213bf1-146e-4739-a78f-859f1c429883
+X-Frame-Options: SAMEORIGIN
+X-Powered-By: ASP.NET
+X-Akamai-Transformed: 9 - 0 pmb=mRUM,1
+Content-Encoding: gzip
+Date: Sat, 28 Sep 2024 23:47:45 GMT
+Vary: Accept-Encoding
+Set-Cookie: .AspNetCore.Antiforgery.Xh2vXOVYRfQ=CfDJ8MxFXhWWlKdLsXYEntchT1uQ1gVl_N9CYPxKpSvXTvVxFh_45E809Ol3VfpJZIpa-DAXcjXkfuX67N5I5JYpp5Ns5H8v1i6pbbcFVCdRuleREPUK1pdJdsvBpeLfOi_kTLXU3jhwHjdOrrMdZl_4Wis; path=/; samesite=strict; httponly

@@ -52,16 +52,6 @@ async def get_ai_message(request: QueryRequest):
         user_query = request.query
         chat_history = request.chat_history
 
-        # if not chat_history:
-        #     chat_history = []
-
-        # print(f"Received query: {user_query}")
-        #
-        # # assistant_response = qa_chain.run(user_query, chat_history)
-        # assistant_response = qa_chain.invoke(
-        #     {"question": user_query, "chat_history": chat_history}
-        # )
-        # assistant_response = assistant_response["answer"]
         assistant_response = process_query(
             user_query=user_query,
             chat_history=chat_history,
@@ -70,14 +60,10 @@ async def get_ai_message(request: QueryRequest):
             answer_chain=answer_chain,
         )
 
-        # chat_history.append({"role": "user", "content": user_query})
-        # chat_history.append({"role": "assistant", "content": assistant_response})
-
         response = {
             "assistant_response": assistant_response,
             "chat_history": chat_history,  # Return the updated chat history
         }
-        # response = {"message": {"role": "assistant", "content": assistant_response}}
 
         return response
 
