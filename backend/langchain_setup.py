@@ -28,6 +28,12 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 class CustomRetriever(BaseRetriever):
     vectorstore: Any
 
+    """
+    basic logic: try to match a part number with regex,
+        if we found it, return a document matching that exact part number
+
+    """
+
     def get_relevant_documents(self, query):
         logging.info(f"Received query: {query}")
         # Check if the query contains a part number
@@ -51,6 +57,10 @@ class CustomRetriever(BaseRetriever):
             f"Retrieved {len(docs)} document(s) from vector similarity search."
         )
         return docs
+
+    """
+    This function attempts to extract numerical identifiers
+    """
 
     def extract_numerical_identifiers(self, query):
         # an attempt to get a correct regex pattern
@@ -115,6 +125,10 @@ def load_documents():
         )
         replaces = replaces_match.group(1).strip() if replaces_match else ""
 
+        """
+        In the following section, we try to contextualize the json fields for interpretability by the LLM
+        """
+
         page_content = (
             f"The part number {item.get('part_number', '')}, which corresponds to the {item.get('part_name', '')}, is manufactured by {item.get('manufacturer', '')}.\n"
             f"This part costs ${item.get('price', '')} and is designed to {item.get('description', '')}.\n"
@@ -162,10 +176,12 @@ def load_vectorstore(index_path, embeddings):
     return vectorstore
 
 
+"""
+This function adapts the question when part of a chat history
+"""
+
+
 def get_question_rephrase_chain(llm: ChatOpenAI) -> LLMChain:
-    """
-    Creates an LLMChain to rephrase follow-up questions into standalone questions.
-    """
     condense_question_prompt = PromptTemplate.from_template("""
     Given the following conversation and a follow-up question, rephrase the question to be a standalone question.
 
@@ -182,9 +198,6 @@ def get_question_rephrase_chain(llm: ChatOpenAI) -> LLMChain:
 
 
 def get_answer_generation_chain(llm: ChatOpenAI) -> LLMChain:
-    """
-    Creates an LLMChain to generate answers based on retrieved context and chat history.
-    """
     qa_prompt = PromptTemplate.from_template("""
     You are a helpful assistant specializing in refrigerator and dishwasher parts.
     Pay close attention to part numbers, model numbers, and other identifiers.
@@ -215,10 +228,6 @@ def process_query(
     rephrase_chain: LLMChain,
     answer_chain: LLMChain,
 ) -> str:
-    """
-    Processes the user's query by rephrasing it, retrieving relevant documents,
-    and generating an answer.
-    """
     # Format chat history into a string
     formatted_chat_history = ""
     for message in chat_history:
@@ -245,6 +254,11 @@ def process_query(
     logging.info(f"Assistant response: {answer}")
 
     return answer
+
+
+"""
+Main function to tie everything together and make the QA chain accessible by FastAPI
+"""
 
 
 def get_qa_chain():

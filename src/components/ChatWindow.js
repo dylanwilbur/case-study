@@ -25,17 +25,15 @@ function ChatWindow() {
 
   const handleSend = async () => {
     if (input.trim() !== "") {
-      // Set user message
       const newUserMessage = { role: "user", content: input };
       const updatedMessages = [...messages, newUserMessage];
       setMessages(updatedMessages);
-      // setMessages(prevMessages => [...prevMessages, { role: "user", content: input }]);
       setInput("");
 
-      // Call API & set assistant message
+      // updated the handleSend function to use chat history
       const newMessage = await getAIMessage(input, updatedMessages);
-      const assistantMessage = { role: "assistant", content: newMessage.assistant_response }; // Changed: Extract assistant_response
-      setMessages([...newMessage.chat_history, assistantMessage]); // Changed: Use updated chat_history from response
+      const assistantMessage = { role: "assistant", content: newMessage.assistant_response };
+      setMessages([...newMessage.chat_history, assistantMessage]);
 
       //
       // setMessages(prevMessages => [...prevMessages, newMessage]);

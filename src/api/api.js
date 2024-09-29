@@ -4,6 +4,7 @@ export const getAIMessage = async (userQuery, chatHistory) => {
   try {
     const history = Array.isArray(chatHistory) ? chatHistory : [];
 
+    // we now send the chat_history in the post request to the backend
     const response = await axios.post('http://127.0.0.1:5000/getAIMessage', {
       query: userQuery,
       chat_history: history,

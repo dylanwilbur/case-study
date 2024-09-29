@@ -46,6 +46,8 @@ async def get_ai_message(request: QueryRequest):
         user_query = request.query
         chat_history = request.chat_history
 
+        # we use a process query funtion from langchain setup
+        # this ensures that the chat history is updated with proper logic
         assistant_response = process_query(
             user_query=user_query,
             chat_history=chat_history,
