@@ -4,14 +4,13 @@ from scrapy_spider.items import PartItem
 
 class PartSpider(scrapy.Spider):
     name = "part_spider"
-    allowed_domains = ["partselect.com"]  # Replace with the target domain
+    allowed_domains = ["partselect.com"]
     start_urls = [
         "https://www.partselect.com/Refrigerator-Parts.htm",
         "https://www.partselect.com/Dishwasher-Parts.htm",
     ]
 
     def parse(self, response):
-        # Determine appliance type based on the start URL
         if "Refrigerator-Parts" in response.url:
             appliance_type = "refrigerator"
         elif "Dishwasher-Parts" in response.url:
@@ -28,7 +27,6 @@ class PartSpider(scrapy.Spider):
             )
 
     def parse_brand(self, response):
-        # Extract links to individual parts
         part_links = response.css("a.nf__part__detail__title::attr(href)").getall()
         for link in part_links:
             # Follow each link to parse individual part details
@@ -41,34 +39,26 @@ class PartSpider(scrapy.Spider):
 
         item["part_name"] = response.css("h1::text").get()
 
-        # Alternatively, using Scrapy's re_first method
         item["part_number"] = response.css(
             '.mt-3.mb-2:contains("PartSelect Number") ::text'
         ).re_first(r"PS\d+")
 
-        # 3. manufacturer
         item["manufacturer"] = response.css(
             '.mb-2:contains("Manufactured by") ::text'
         ).re_first(r"LG|Kenmore")
 
-        # 4. price
-        item["price"] = response.css(".price::text").re_first(r"\d+\.\d+")
+        # item["price"] = response.css(".price::text").re_first(r"\d+\.\d+")
+        item["price"] = response.css("span.js-partPrice::text").re_first(r"\d+\.\d+")
 
-        # # 5. availability: TODO
-        # item["availability"] = response.css(".js-partAvailability::text").get()
-
-        # 6. description
         item["description"] = " ".join(
             response.css('div[itemprop="description"]::text').getall()
         ).strip()
 
-        # 7. rating
         item["rating"] = response.css(".rating__stars__upper::attr(style)").re_first(
             r"\d+"
         )
 
         # Extract the 'Troubleshooting' section
-        # Locate the 'Troubleshooting' section using XPath
         troubleshooting_section = response.xpath(
             '//div[@id="Troubleshooting"]/following-sibling::div[@data-collapsible][1]'
         )

@@ -11,16 +11,12 @@ load_dotenv()
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# client = OpenAI(
-#     api_key=os.getenv("OPENAI_API_KEY")
-# )  # Use openai directly, not OpenAI class
-
 app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this to restrict origins in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,9 +28,7 @@ class QueryRequest(BaseModel):
     chat_history: list = []
 
 
-# Initialize the QA chain once when the app starts
-# qa_chain = get_qa_chain()
-
+# Multi-chained architecture to handle chat history
 qa_components = get_qa_chain()
 rephrase_chain = qa_components["rephrase_chain"]
 answer_chain = qa_components["answer_chain"]

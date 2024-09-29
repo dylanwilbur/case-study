@@ -53,7 +53,7 @@ class CustomRetriever(BaseRetriever):
         return docs
 
     def extract_numerical_identifiers(self, query):
-        # Corrected regex pattern
+        # an attempt to get a correct regex pattern
         identifiers = re.findall(
             r"\b(PS\d+|WP\d+|AP\d+|W\d{6,7})\b", query, re.IGNORECASE
         )
@@ -61,7 +61,6 @@ class CustomRetriever(BaseRetriever):
         return identifiers[0] if identifiers else None
 
     def search_by_part_number(self, part_number):
-        # Access the documents in the vectorstore
         all_docs = self.vectorstore.docstore._dict.values()
         # Filter documents by part number metadata
         matching_docs = [
@@ -87,13 +86,11 @@ class CustomRetriever(BaseRetriever):
 
 
 def load_documents():
-    # Load documents from JSON file
     with open("data/parts_data.json", "r") as f:
         data = json.load(f)
 
     documents = []
     for item in data:
-        # Extract information from 'troubleshooting_tips'
         troubleshooting_tips = item.get("troubleshooting_tips", "")
 
         # Assuming standardized formatting of the troubleshooting section, which appears to be the case
@@ -128,7 +125,6 @@ def load_documents():
             f"It is compatible with the following models: {' '.join(item.get('compatible_models', ''))}"
         )
 
-        # Include replaced part numbers in a sentence
         replaces = replaces.strip()
         if replaces:
             page_content += f"Part Number {item.get('part_number', '')} replaces these part numbers: {replaces}.\n"
@@ -212,11 +208,6 @@ def get_answer_generation_chain(llm: ChatOpenAI) -> LLMChain:
     return answer_chain
 
 
-# ----------------------------------
-# Processing Function
-# ----------------------------------
-
-
 def process_query(
     user_query: str,
     chat_history: List[dict],
@@ -257,21 +248,14 @@ def process_query(
 
 
 def get_qa_chain():
-    """
-    Initializes and returns the components needed to process queries.
-    """
-    # Load and prepare documents
     documents = load_documents()
     logging.info(f"Loaded {len(documents)} documents.")
 
-    # Create the vector store
     vectorstore = create_vectorstore(documents)
     logging.info("Vector store created.")
 
-    # Initialize the custom retriever
     retriever = CustomRetriever(vectorstore=vectorstore)
 
-    # Initialize the language model
     llm = ChatOpenAI(
         openai_api_key=openai_api_key, model_name="gpt-3.5-turbo", temperature=0
     )
